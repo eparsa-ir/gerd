@@ -1,17 +1,69 @@
+
 import React, { useState, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // --- Type Definitions ---
-type PoleTest = {
+type MechanicalTest = {
     id: number;
-    sandFinenessModulus: string;
-    sandClayImpurity: string;
-    gravelClayImpurity: string;
-    sandValue: string;
+    nominalStrength: string;
+    poleLength: string;
     actualFailureStrength: string;
     maxDispAt1_5x: string;
     residualDispAfterLoad: string;
 };
+
+const initialInputs = {
+    sandFinenessModulus: '',
+    sandClayImpurity: '',
+    gravelClayImpurity: '',
+    sandValue: '',
+    suspendedSolids: '',
+    dissolvedSolids: '',
+    chlorideIons: '',
+    sulfateIons: '',
+    alkaliEquivalent: '',
+    waterPH: '',
+    sat_quality: '', sat_stability: '', sat_performance: '', sat_commitment: '', sat_disposal: '',
+    warrantyYears: '', historyYears: '', annualCapacity: '', lifespanYears: '',
+    prodLineQuality: { line: false, materials: false, processing: false },
+    prodMethod: '40',
+    mixerType: '40',
+    permeability: '40',
+    transportDistance: '40',
+};
+
+const initialMechanicalTests: MechanicalTest[] = [{ 
+    id: 1, 
+    nominalStrength: '',
+    poleLength: '',
+    actualFailureStrength: '', 
+    maxDispAt1_5x: '', 
+    residualDispAfterLoad: ''
+}];
+
+const initialHeader = {
+    company: '',
+    tender: '',
+    date: ''
+};
+
+const scoreLabels = {
+    stoneQuality: { label: "کیفیت مصالح سنگی", weight: 15 },
+    waterQuality: { label: "کیفیت آب مصرفی", weight: 10 },
+    satisfaction: { label: "میزان رضایت بهره بردار", weight: 5 },
+    failureLimit: { label: "حد گسیختگی پایه", weight: 10 },
+    residualDisp: { label: "تغییر مکان باقی مانده رأس پایه", weight: 5 },
+    warranty: { label: "مدت گارانتی تعویض", weight: 3 },
+    history: { label: "سابقه تولید", weight: 3 },
+    capacity: { label: "ظرفیت تولید سالانه", weight: 3 },
+    lifespan: { label: "طول عمر پایه", weight: 5 },
+    prodLineQuality: { label: "کیفیت خط تولید و دپو", weight: 5 },
+    prodMethod: { label: "روش تولید", weight: 13 },
+    mixerType: { label: "نوع میکسر", weight: 5 },
+    permeability: { label: "نفوذپذیری و دوام بتن", weight: 15 },
+    transportDistance: { label: "مسافت حمل", weight: 3 },
+};
+
 
 // --- Helper Components ---
 const Gauge = ({ value }) => {
@@ -44,7 +96,6 @@ const Gauge = ({ value }) => {
     );
 };
 
-// FIX: Pass onBlur to select and checkbox inputs.
 const InputGroup = ({ label, name, value, onChange, onBlur, type = "number", step = "any", children = null, unit = '', placeholder = '', error = null }) => (
     <div className="input-group">
         <label htmlFor={name}>{label} {unit && `(${unit})`}</label>
@@ -52,10 +103,10 @@ const InputGroup = ({ label, name, value, onChange, onBlur, type = "number", ste
             <select id={name} name={name} value={value} onChange={onChange} onBlur={onBlur}>
                 {children}
             </select>
-        ) : type === "checkbox" ? (
+        ) : type === 'checkbox' ? (
              <div className="checkbox-group">
-                <input id={name} type="checkbox" name={name} checked={value} onChange={onChange} onBlur={onBlur} />
-                {/* We move the label text here for checkbox alignment */}
+                <input id={name} type="checkbox" name={name} checked={value} onChange={onChange} onBlur={onBlur}/>
+                <span>{children}</span>
              </div>
         ) : (
             <input id={name} type={type} name={name} value={value} onChange={onChange} onBlur={onBlur} step={step} placeholder={placeholder} className={error ? 'error' : ''}/>
@@ -65,9 +116,14 @@ const InputGroup = ({ label, name, value, onChange, onBlur, type = "number", ste
 );
 
 
-const Card = ({ title, children }: { title: string, children?: React.ReactNode }) => (
-    <details className="card" open>
-        <summary>{title}</summary>
+const Card = ({ title, subtitle = '', id = '', children }: { title: string, subtitle?: string, id?: string, children?: React.ReactNode }) => (
+    <details className="card" id={id} open>
+        <summary>
+             <div>
+                {title}
+                {subtitle && <span className="card-subtitle">{subtitle}</span>}
+            </div>
+        </summary>
         <div className="card-content">
             {children}
         </div>
@@ -77,45 +133,9 @@ const Card = ({ title, children }: { title: string, children?: React.ReactNode }
 
 // --- Main Application ---
 const App = () => {
-    const [header, setHeader] = useState({
-        company: '',
-        tender: '',
-        date: ''
-    });
-
-    const [poleTests, setPoleTests] = useState<PoleTest[]>([{ 
-        id: 1, 
-        sandFinenessModulus: '', sandClayImpurity: '', gravelClayImpurity: '', sandValue: '',
-        actualFailureStrength: '', maxDispAt1_5x: '', residualDispAfterLoad: ''
-    }]);
-
-    const [inputs, setInputs] = useState({
-        // Test Parameters
-        nominalStrength: '',
-        poleLength: '',
-        // Water Quality
-        suspendedSolids: '',
-        dissolvedSolids: '',
-        chlorideIons: '',
-        sulfateIons: '',
-        alkaliEquivalent: '',
-        waterPH: '',
-        // Operator Satisfaction
-        sat_quality: '', sat_stability: '', sat_performance: '', sat_commitment: '', sat_disposal: '',
-        // General Specs
-        warrantyYears: '', historyYears: '', annualCapacity: '', lifespanYears: '',
-        // Selects & Checkboxes
-        prodLineQuality: {
-            line: false,
-            materials: false,
-            processing: false
-        },
-        prodMethod: 40,
-        mixerType: 40,
-        permeability: 40,
-        transportDistance: 40,
-    });
-    
+    const [header, setHeader] = useState(initialHeader);
+    const [mechanicalTests, setMechanicalTests] = useState<MechanicalTest[]>(initialMechanicalTests);
+    const [inputs, setInputs] = useState(initialInputs);
     const [errors, setErrors] = useState({});
 
     // --- Handlers ---
@@ -144,26 +164,51 @@ const App = () => {
         }
     };
 
-    const handlePoleTestChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleMechanicalTestChange = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        const updatedTests = [...poleTests];
-        updatedTests[index] = { ...updatedTests[index], [name]: value };
-        setPoleTests(updatedTests);
+        const updatedTests = mechanicalTests.map(test => 
+            test.id === id ? { ...test, [name]: value } : test
+        );
+        setMechanicalTests(updatedTests);
 
-        const errorKey = `${name}_${index}`;
+        const testIndex = mechanicalTests.findIndex(t => t.id === id);
+        const errorKey = `${name}_${testIndex}`;
         if (errors[errorKey]) {
-            validateField(name, value, index);
+            validateField(name, value, testIndex);
         }
     };
     
-    const addPoleTest = () => {
-        if (poleTests.length < 6) {
-            setPoleTests(prev => [...prev, { id: Date.now(), sandFinenessModulus: '', sandClayImpurity: '', gravelClayImpurity: '', sandValue: '', actualFailureStrength: '', maxDispAt1_5x: '', residualDispAfterLoad: ''}]);
+    const addMechanicalTest = () => {
+        if (mechanicalTests.length < 6) {
+            setMechanicalTests(prev => [...prev, { 
+                id: Date.now(), 
+                nominalStrength: '',
+                poleLength: '',
+                actualFailureStrength: '', 
+                maxDispAt1_5x: '', 
+                residualDispAfterLoad: ''
+            }]);
         }
     };
     
-    const removePoleTest = (id: number) => {
-        setPoleTests(prev => prev.filter(test => test.id !== id));
+    const removeMechanicalTest = (id: number) => {
+        const testIndex = mechanicalTests.findIndex(t => t.id === id);
+        setMechanicalTests(prev => prev.filter(test => test.id !== id));
+        // Also remove errors associated with the removed test
+        const newErrors = {...errors};
+        Object.keys(newErrors).forEach(key => {
+            if (key.endsWith(`_${testIndex}`)) {
+                delete newErrors[key];
+            }
+        });
+        setErrors(newErrors);
+    };
+
+    const handleReset = () => {
+        setHeader(initialHeader);
+        setInputs(initialInputs);
+        setMechanicalTests(initialMechanicalTests);
+        setErrors({});
     };
 
     // --- Validation ---
@@ -185,17 +230,23 @@ const App = () => {
         sat_disposal: { min:0, max: 8, message: "باید بین ۰ و ۸ باشد" },
         warrantyYears: { min: 2, message: "حداقل ۲ سال" },
         lifespanYears: { min: 40, message: "حداقل ۴۰ سال" },
+        nominalStrength: { min: 1, message: "باید مقدار مثبتی باشد" },
+        poleLength: { min: 1, message: "باید مقدار مثبتی باشد" },
+        actualFailureStrength: { min: 0, message: "نمیتواند منفی باشد"},
+        maxDispAt1_5x: {min: 0, message: "نمیتواند منفی باشد"},
+        residualDispAfterLoad: {min: 0, message: "نمیتواند منفی باشد"},
     };
 
     const validateField = (name, value, index = -1) => {
         const rule = validationSchema[name];
         const key = index > -1 ? `${name}_${index}` : name;
+
         if (!rule) return;
         
         const numValue = parseFloat(value);
         let error = null;
 
-        if (value === '') { // Don't validate empty fields until blur
+        if (value === '') { 
              setErrors(prev => ({ ...prev, [key]: null }));
              return;
         }
@@ -219,16 +270,13 @@ const App = () => {
         const scores: Record<string, number> = {};
         const getNum = (val) => parseFloat(String(val)) || 0;
 
-        // 1. کیفیت مصالح سنگی (Averaged)
-        const stoneScores = poleTests.map(test => {
-            const score1a = Math.min(20, Math.max(0, 50 * (Math.abs(getNum(test.sandFinenessModulus) - 2.7) - 0.4)));
-            const score1b = Math.min(5, Math.max(0, 500 * (0.02 - getNum(test.sandClayImpurity) / 100)));
-            const score1c = Math.min(5, Math.max(0, 250 * (0.03 - getNum(test.gravelClayImpurity) / 100)));
-            const score1d = Math.min(10, Math.max(0, 100 * (getNum(test.sandValue) / 100 - 0.75)));
-            return (60 + score1a + score1b + score1c + score1d);
-        });
-        const avgStoneScore = stoneScores.reduce((sum, s) => sum + s, 0) / (stoneScores.length || 1);
-        scores.stoneQuality = avgStoneScore * 0.15;
+        // 1. کیفیت مصالح سنگی
+        const score1a = 50 * (Math.abs(getNum(inputs.sandFinenessModulus) - 2.7) - 0.4);
+        const score1b = 500 * (0.02 - getNum(inputs.sandClayImpurity) / 100);
+        const score1c = 250 * (0.03 - getNum(inputs.gravelClayImpurity) / 100);
+        const score1d = 100 * (getNum(inputs.sandValue) / 100 - 0.75);
+        const totalStonePoints = Math.min(20, Math.max(0, score1a)) + Math.min(5, Math.max(0, score1b)) + Math.min(5, Math.max(0, score1c)) + Math.min(10, Math.max(0, score1d));
+        scores.stoneQuality = (60 + totalStonePoints) * 0.15;
 
 
         // 2. کیفیت آب مصرفی
@@ -245,8 +293,8 @@ const App = () => {
         scores.satisfaction = (60 + sat_avg * 5) * 0.05;
         
         // 4. حد گسیختگی پایه (Averaged)
-        const failureLimitScores = poleTests.map(test => {
-            const nominalStrength = getNum(inputs.nominalStrength) || 1;
+        const failureLimitScores = mechanicalTests.map(test => {
+            const nominalStrength = getNum(test.nominalStrength) || 1;
             if (getNum(test.actualFailureStrength) === 0) return 60; // Base score for empty input
             const failureRatio = getNum(test.actualFailureStrength) / (nominalStrength * 2);
             const score = Math.max(0, 80 * (failureRatio - 1));
@@ -256,9 +304,9 @@ const App = () => {
         scores.failureLimit = avgFailureLimitScore * 0.10;
 
         // 5. مقدار تغییر مکان باقی مانده (Averaged)
-        const residualDispScores = poleTests.map(test => {
-            if (getNum(test.maxDispAt1_5x) === 0) return 60; // Base score for empty input
+        const residualDispScores = mechanicalTests.map(test => {
             const maxDisp = getNum(test.maxDispAt1_5x);
+            if (maxDisp === 0) return 60; // Base score for empty input or to avoid division by zero
             const residualDisp = getNum(test.residualDispAfterLoad);
             const residualPercentage = (residualDisp / maxDisp) * 100;
             const score = Math.max(0, 8 * (10 - residualPercentage));
@@ -266,7 +314,6 @@ const App = () => {
         });
         const avgResidualDispScore = residualDispScores.reduce((sum, s) => sum + s, 0) / (residualDispScores.length || 1);
         scores.residualDisp = avgResidualDispScore * 0.05;
-
 
         // 6. مدت گارانتی
         const score6 = Math.max(0, 40 * (getNum(inputs.warrantyYears) - 2));
@@ -283,181 +330,156 @@ const App = () => {
         // 9. طول عمر پایه
         const score9 = Math.max(0, 2 * (getNum(inputs.lifespanYears) - 40));
         scores.lifespan = (60 + score9) * 0.05;
-
-        // 10. کیفیت خط تولید و دپو
-        let score10 = 0;
-        const { line, materials, processing } = inputs.prodLineQuality;
-        if (line && materials && processing) {
-            score10 = 40;
-        } else if (line && (materials || processing)) {
-            score10 = 20;
-        }
-        scores.prodLineQuality = (60 + score10) * 0.05;
         
+        // 10. کیفیت خط تولید و دپو
+        let prodQualityPoints = 0;
+        if (inputs.prodLineQuality.line && inputs.prodLineQuality.materials && inputs.prodLineQuality.processing) {
+            prodQualityPoints = 40;
+        } else if (inputs.prodLineQuality.line && inputs.prodLineQuality.processing) {
+            prodQualityPoints = 20;
+        } else if (inputs.prodLineQuality.line && inputs.prodLineQuality.materials) {
+            prodQualityPoints = 20;
+        }
+        scores.prodLineQuality = (60 + prodQualityPoints) * 0.05;
+
         // 11. روش تولید
         scores.prodMethod = (60 + getNum(inputs.prodMethod)) * 0.13;
         
         // 12. نوع میکسر
         scores.mixerType = (60 + getNum(inputs.mixerType)) * 0.05;
-
+        
         // 13. نفوذپذیری و دوام بتن
         scores.permeability = (60 + getNum(inputs.permeability)) * 0.15;
         
         // 14. مسافت حمل
         scores.transportDistance = (60 + getNum(inputs.transportDistance)) * 0.03;
 
-        const totalScore = Object.values(scores).reduce((sum, val) => sum + val, 0);
-        
-        return { ...scores, totalScore };
-    }, [inputs, poleTests]);
-    
-    const scoreItems = [
-        { key: 'stoneQuality', label: 'کیفیت مصالح سنگی', weight: 15 },
-        { key: 'waterQuality', label: 'کیفیت آب مصرفی', weight: 10 },
-        { key: 'satisfaction', label: 'میزان رضایت بهره بردار', weight: 5 },
-        { key: 'failureLimit', label: 'حد گسیختگی پایه', weight: 10 },
-        { key: 'residualDisp', label: 'مقدار تغییر مکان باقی مانده', weight: 5 },
-        { key: 'warranty', label: 'مدت گارانتی', weight: 3 },
-        { key: 'history', label: 'سابقه ی تولید', weight: 3 },
-        { key: 'capacity', label: 'ظرفیت تولید', weight: 3 },
-        { key: 'lifespan', label: 'طول عمر پایه', weight: 5 },
-        { key: 'prodLineQuality', label: 'کیفیت خط تولید و دپو', weight: 5 },
-        { key: 'prodMethod', label: 'روش تولید', weight: 13 },
-        { key: 'mixerType', label: 'نوع میکسر', weight: 5 },
-        { key: 'permeability', label: 'نفوذپذیری و دوام بتن', weight: 15 },
-        { key: 'transportDistance', label: 'مسافت حمل', weight: 3 },
-    ];
+        const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
 
+        return { scores, totalScore };
+    }, [inputs, mechanicalTests]);
 
     return (
         <div className="app-container">
             <header>
-                <h1>
-                    محاسبه امتیاز فنی شرکت
-                    <input name="company" value={header.company} onChange={handleHeaderChange} className="header-input" placeholder="..."/>
-                    در مناقصه
-                    <input name="tender" value={header.tender} onChange={handleHeaderChange} className="header-input" placeholder="..."/>
-                    در تاریخ
-                    <input name="date" value={header.date} onChange={handleHeaderChange} className="header-input" placeholder="..."/>
-                </h1>
+                <h1>محاسبه امتیاز فنی شرکت در مناقصه</h1>
             </header>
-            <main className="main-content">
+            <div className="main-content">
                 <div className="form-container">
-                   <Card title="مشخصات پایه و آزمون">
-                       <InputGroup label="مقاومت اسمی پایه" name="nominalStrength" value={inputs.nominalStrength} onChange={handleChange} onBlur={handleBlur} placeholder="مثال: 400" unit="kgf" error={errors.nominalStrength}/>
-                       <InputGroup label="طول پایه" name="poleLength" value={inputs.poleLength} onChange={handleChange} onBlur={handleBlur} placeholder="مثال: 9" unit="متر" error={errors.poleLength}/>
-                   </Card>
-                   
-                   <Card title="۱، ۴ و ۵. نتایج برگه آزمون پایه ها">
-                        {poleTests.map((test, index) => (
-                           <div key={test.id} className="pole-test-card">
-                               <div className="pole-test-header">
-                                   <h4>برگه آزمون پایه شماره {index + 1}</h4>
-                                   {poleTests.length > 1 && <button onClick={() => removePoleTest(test.id)} className="remove-button">حذف</button>}
-                               </div>
-                               <div className="pole-test-inputs">
-                                   <InputGroup label="ضریب نرمی ماسه" name="sandFinenessModulus" value={test.sandFinenessModulus} onChange={(e) => handlePoleTestChange(index, e)} onBlur={(e) => handleBlur(e, index)} placeholder="2.3 - 3.1" error={errors[`sandFinenessModulus_${index}`]} />
-                                   <InputGroup label="ناخالصی ماسه" name="sandClayImpurity" value={test.sandClayImpurity} onChange={(e) => handlePoleTestChange(index, e)} onBlur={(e) => handleBlur(e, index)} unit="%" placeholder="کمتر از ۲٪" error={errors[`sandClayImpurity_${index}`]} />
-                                   <InputGroup label="ناخالصی شن" name="gravelClayImpurity" value={test.gravelClayImpurity} onChange={(e) => handlePoleTestChange(index, e)} onBlur={(e) => handleBlur(e, index)} unit="%" placeholder="کمتر از ۳٪" error={errors[`gravelClayImpurity_${index}`]} />
-                                   <InputGroup label="ارزش ماسه‌ای" name="sandValue" value={test.sandValue} onChange={(e) => handlePoleTestChange(index, e)} onBlur={(e) => handleBlur(e, index)} unit="%" placeholder="بیشتر از ۷۵٪" error={errors[`sandValue_${index}`]} />
-                                   <InputGroup label="نیروی گسیختگی" name="actualFailureStrength" value={test.actualFailureStrength} onChange={(e) => handlePoleTestChange(index, e)} onBlur={(e) => handleBlur(e, index)} unit="kgf" placeholder="نیروی شکست نهایی" error={errors[`actualFailureStrength_${index}`]} />
-                                   <InputGroup label="حداکثر تغییرمکان" name="maxDispAt1_5x" value={test.maxDispAt1_5x} onChange={(e) => handlePoleTestChange(index, e)} onBlur={(e) => handleBlur(e, index)} unit="mm" placeholder="در بار ۱.۵ برابر" error={errors[`maxDispAt1_5x_${index}`]}/>
-                                   <InputGroup label="تغییرمکان باقیمانده" name="residualDispAfterLoad" value={test.residualDispAfterLoad} onChange={(e) => handlePoleTestChange(index, e)} onBlur={(e) => handleBlur(e, index)} unit="mm" placeholder="پس از حذف بار" error={errors[`residualDispAfterLoad_${index}`]}/>
-                               </div>
-                           </div>
-                        ))}
-                        <button onClick={addPoleTest} disabled={poleTests.length >= 6} className="action-button">افزودن برگه آزمون پایه</button>
-                   </Card>
-                   
-                   <Card title="۲. کیفیت آب مصرفی">
-                       <InputGroup label="ذرات جامد معلق" name="suspendedSolids" value={inputs.suspendedSolids} onChange={handleChange} onBlur={handleBlur} unit="ppm" placeholder="کمتر از ۱۰۰۰" error={errors.suspendedSolids} />
-                       <InputGroup label="کل مواد محلول" name="dissolvedSolids" value={inputs.dissolvedSolids} onChange={handleChange} onBlur={handleBlur} unit="ppm" placeholder="کمتر از ۱۰۰۰" error={errors.dissolvedSolids} />
-                       <InputGroup label="کل یون‌های کلرید" name="chlorideIons" value={inputs.chlorideIons} onChange={handleChange} onBlur={handleBlur} unit="ppm" placeholder="کمتر از ۵۰۰" error={errors.chlorideIons} />
-                       <InputGroup label="کل یون‌های سولفات" name="sulfateIons" value={inputs.sulfateIons} onChange={handleChange} onBlur={handleBlur} unit="ppm" placeholder="کمتر از ۱۰۰۰" error={errors.sulfateIons} />
-                       <InputGroup label="قلیایی معادل" name="alkaliEquivalent" value={inputs.alkaliEquivalent} onChange={handleChange} onBlur={handleBlur} unit="ppm" placeholder="کمتر از ۶۰۰" error={errors.alkaliEquivalent} />
-                       <InputGroup label="PH آب" name="waterPH" value={inputs.waterPH} onChange={handleChange} onBlur={handleBlur} placeholder="5.5 - 8.5" error={errors.waterPH} />
-                   </Card>
-                   <Card title="۳. میزان رضایت بهره بردار">
-                        <InputGroup label="کیفیت ساخت و عمل آوری" name="sat_quality" value={inputs.sat_quality} onChange={handleChange} onBlur={handleBlur} placeholder="۰ تا ۸" error={errors.sat_quality} />
-                        <InputGroup label="چگونگی استقرار و جابجایی" name="sat_stability" value={inputs.sat_stability} onChange={handleChange} onBlur={handleBlur} placeholder="۰ تا ۸" error={errors.sat_stability} />
-                        <InputGroup label="عملکرد در دوره بهره برداری" name="sat_performance" value={inputs.sat_performance} onChange={handleChange} onBlur={handleBlur} placeholder="۰ تا ۸" error={errors.sat_performance} />
-                        <InputGroup label="انجام به موقع تعهدات" name="sat_commitment" value={inputs.sat_commitment} onChange={handleChange} onBlur={handleBlur} placeholder="۰ تا ۸" error={errors.sat_commitment} />
-                        <InputGroup label="نحوه امحاء تولیدات مردود" name="sat_disposal" value={inputs.sat_disposal} onChange={handleChange} onBlur={handleBlur} placeholder="۰ تا ۸" error={errors.sat_disposal} />
-                   </Card>
-                     <Card title="۶ تا ۹. مشخصات عمومی">
-                        <InputGroup label="مدت گارانتی تعویض" name="warrantyYears" value={inputs.warrantyYears} onChange={handleChange} onBlur={handleBlur} unit="سال" placeholder="حداقل ۲ سال" error={errors.warrantyYears} />
-                        <InputGroup label="سابقه تولید" name="historyYears" value={inputs.historyYears} onChange={handleChange} onBlur={handleBlur} unit="سال" placeholder="مثال: ۱۰" error={errors.historyYears} />
-                        <InputGroup label="ظرفیت تولید سالانه" name="annualCapacity" value={inputs.annualCapacity} onChange={handleChange} onBlur={handleBlur} unit="اصله" placeholder="مثال: ۵۰۰۰" error={errors.annualCapacity} />
-                        <InputGroup label="طول عمر پایه" name="lifespanYears" value={inputs.lifespanYears} onChange={handleChange} onBlur={handleBlur} unit="سال" placeholder="حداقل ۴۰ سال" error={errors.lifespanYears} />
+                    <Card title="اطلاعات مناقصه" id="header-card">
+                         <InputGroup label="نام شرکت" name="company" value={header.company} onChange={handleHeaderChange} type="text" />
+                         <InputGroup label="شماره مناقصه" name="tender" value={header.tender} onChange={handleHeaderChange} type="text" />
+                         <InputGroup label="تاریخ ارزیابی" name="date" value={header.date} onChange={handleHeaderChange} type="text" />
                     </Card>
-                    <Card title="۱۰. کیفیت خط تولید و دپو">
-                         <div className="card-content checkbox-container">
-                             <div className="checkbox-group">
-                                <input type="checkbox" id="line" name="line" checked={inputs.prodLineQuality.line} onChange={handleChange} />
-                                <label htmlFor="line">فضای مسقف برای خط تولید</label>
-                             </div>
-                              <div className="checkbox-group">
-                                <input type="checkbox" id="materials" name="materials" checked={inputs.prodLineQuality.materials} onChange={handleChange} />
-                                <label htmlFor="materials">فضای مسقف برای مصالح سنگی</label>
-                             </div>
-                              <div className="checkbox-group">
-                                <input type="checkbox" id="processing" name="processing" checked={inputs.prodLineQuality.processing} onChange={handleChange} />
-                                <label htmlFor="processing">فضای مسقف برای دپوی فرآوری پایه‌ها</label>
-                             </div>
-                         </div>
-                    </Card>
-                     {/* FIX: Add missing onBlur prop */}
-                     <Card title="۱۱. روش تولید">
-                         <InputGroup label="انتخاب روش" name="prodMethod" value={inputs.prodMethod} type="select" onChange={handleChange} onBlur={handleBlur}>
-                            <option value={40}>بتن ریزی در قالب باز و آرماتوربندی با دستگاه اتوماتیک</option>
-                            <option value={30}>بتن ریزی در قالب باز و آرماتوربندی دستی</option>
-                             <option value={20}>تزریق بتن در قالب بسته و آرماتوربندی با دستگاه اتوماتیک</option>
-                            <option value={0}>تزریق بتن در قالب بسته</option>
-                         </InputGroup>
-                    </Card>
-                     {/* FIX: Add missing onBlur prop */}
-                     <Card title="۱۲. نوع میکسر">
-                         <InputGroup label="انتخاب میکسر" name="mixerType" value={inputs.mixerType} type="select" onChange={handleChange} onBlur={handleBlur}>
-                            <option value={40}>بچینگ با میکسر دو محور افقی</option>
-                            <option value={30}>بچینگ با میکسر تک محور افقی</option>
-                            <option value={20}>بچینگ با میکسر تیغه‌ای با محور قائم</option>
-                         </InputGroup>
-                    </Card>
-                     {/* FIX: Add missing onBlur prop */}
-                     <Card title="۱۳. نفوذپذیری و دوام بتن">
-                         <InputGroup label="ارائه نتایج آزمایش" name="permeability" value={inputs.permeability} type="select" onChange={handleChange} onBlur={handleBlur}>
-                            <option value={40}>ارائه نتایج کامل (آزمایش ۱ یا ۲ + دو آزمایش از ردیف ۳ تا ۶)</option>
-                            <option value={20}>ارائه نتایج ناقص (آزمایش ۱ یا ۲ + یک آزمایش از ردیف ۵ و ۶)</option>
-                            <option value={0}>عدم ارائه نتایج</option>
-                         </InputGroup>
-                    </Card>
-                    {/* FIX: Add missing onBlur prop */}
-                    <Card title="۱۴. مسافت حمل">
-                         <InputGroup label="انتخاب مسافت" name="transportDistance" value={inputs.transportDistance} type="select" onChange={handleChange} onBlur={handleBlur}>
-                            <option value={40}>تا ۲۵۰ کیلومتر</option>
-                            <option value={30}>۲۵۰ تا ۵۰۰ کیلومتر</option>
-                            <option value={20}>۵۰۰ تا ۷۵۰ کیلومتر</option>
-                            <option value={10}>۷۵۰ تا ۱۰۰۰ کیلومتر</option>
-                            <option value={0}>بیشتر از ۱۰۰۰ کیلومتر</option>
-                         </InputGroup>
+                    
+                    <Card title="۱. کیفیت مصالح سنگی">
+                        <InputGroup label="ضریب نرمی ماسه" name="sandFinenessModulus" value={inputs.sandFinenessModulus} onChange={handleChange} onBlur={handleBlur} placeholder="۲.۳ - ۳.۱" error={errors.sandFinenessModulus}/>
+                        <InputGroup label="خاک رس در ماسه" unit="%" name="sandClayImpurity" value={inputs.sandClayImpurity} onChange={handleChange} onBlur={handleBlur} placeholder="حداکثر ۲٪" error={errors.sandClayImpurity}/>
+                        <InputGroup label="خاک رس در شن" unit="%" name="gravelClayImpurity" value={inputs.gravelClayImpurity} onChange={handleChange} onBlur={handleBlur} placeholder="حداکثر ۳٪" error={errors.gravelClayImpurity}/>
+                        <InputGroup label="ارزش ماسه‌ای" unit="%" name="sandValue" value={inputs.sandValue} onChange={handleChange} onBlur={handleBlur} placeholder="حداقل ۷۵٪" error={errors.sandValue}/>
                     </Card>
 
+                    <Card title="۲. کیفیت آب مصرفی">
+                        <InputGroup label="ذرات جامد معلق" unit="ppm" name="suspendedSolids" value={inputs.suspendedSolids} onChange={handleChange} onBlur={handleBlur} placeholder="حداکثر ۱۰۰۰" error={errors.suspendedSolids}/>
+                        <InputGroup label="کل مواد محلول" unit="ppm" name="dissolvedSolids" value={inputs.dissolvedSolids} onChange={handleChange} onBlur={handleBlur} placeholder="حداکثر ۱۰۰۰" error={errors.dissolvedSolids}/>
+                        <InputGroup label="یون کلرید" unit="ppm" name="chlorideIons" value={inputs.chlorideIons} onChange={handleChange} onBlur={handleBlur} placeholder="حداکثر ۵۰۰" error={errors.chlorideIons}/>
+                        <InputGroup label="یون سولفات" unit="ppm" name="sulfateIons" value={inputs.sulfateIons} onChange={handleChange} onBlur={handleBlur} placeholder="حداکثر ۱۰۰۰" error={errors.sulfateIons}/>
+                        <InputGroup label="قلیایی معادل" unit="ppm" name="alkaliEquivalent" value={inputs.alkaliEquivalent} onChange={handleChange} onBlur={handleBlur} placeholder="حداکثر ۶۰۰" error={errors.alkaliEquivalent}/>
+                        <InputGroup label="PH آب" name="waterPH" value={inputs.waterPH} onChange={handleChange} onBlur={handleBlur} placeholder="۵.۵ - ۸.۵" error={errors.waterPH}/>
+                    </Card>
+
+                    <Card title="۳. میزان رضایت بهره‌بردار" subtitle="(امتیاز میانگین فرم ها در این کادر وارد شود)">
+                         <InputGroup label="کیفیت ساخت" name="sat_quality" value={inputs.sat_quality} onChange={handleChange} onBlur={handleBlur} placeholder="۰-۸" error={errors.sat_quality}/>
+                         <InputGroup label="چگونگی استقرار" name="sat_stability" value={inputs.sat_stability} onChange={handleChange} onBlur={handleBlur} placeholder="۰-۸" error={errors.sat_stability}/>
+                         <InputGroup label="عملکرد" name="sat_performance" value={inputs.sat_performance} onChange={handleChange} onBlur={handleBlur} placeholder="۰-۸" error={errors.sat_performance}/>
+                         <InputGroup label="تعهدات" name="sat_commitment" value={inputs.sat_commitment} onChange={handleChange} onBlur={handleBlur} placeholder="۰-۸" error={errors.sat_commitment}/>
+                         <InputGroup label="امحاء تولیدات مردود" name="sat_disposal" value={inputs.sat_disposal} onChange={handleChange} onBlur={handleBlur} placeholder="۰-۸" error={errors.sat_disposal}/>
+                    </Card>
+                    
+                     <Card title="۴ و ۵. نتایج آزمون‌های مکانیکی">
+                        {mechanicalTests.map((test, index) => (
+                            <div className="pole-test-card" key={test.id}>
+                                <div className="pole-test-header">
+                                    <h4>برگه آزمون پایه #{index + 1}</h4>
+                                    {mechanicalTests.length > 1 && <button className="remove-button" onClick={() => removeMechanicalTest(test.id)}>حذف</button>}
+                                </div>
+                                <div className="pole-test-inputs">
+                                     <InputGroup label="نیروی اسمی" unit="kgf" name="nominalStrength" value={test.nominalStrength} onChange={(e) => handleMechanicalTestChange(test.id, e)} onBlur={(e) => handleBlur(e, index)} placeholder="مثال: 400" error={errors[`nominalStrength_${index}`]}/>
+                                     <InputGroup label="طول پایه" unit="m" name="poleLength" value={test.poleLength} onChange={(e) => handleMechanicalTestChange(test.id, e)} onBlur={(e) => handleBlur(e, index)} placeholder="مثال: 9" error={errors[`poleLength_${index}`]}/>
+                                     <InputGroup label="نیروی گسیختگی" unit="kgf" name="actualFailureStrength" value={test.actualFailureStrength} onChange={(e) => handleMechanicalTestChange(test.id, e)} onBlur={(e) => handleBlur(e, index)} placeholder="مثال: ۸۵۰" error={errors[`actualFailureStrength_${index}`]}/>
+                                     <InputGroup label="حداکثر تغییرمکان" unit="mm" name="maxDispAt1_5x" value={test.maxDispAt1_5x} onChange={(e) => handleMechanicalTestChange(test.id, e)} onBlur={(e) => handleBlur(e, index)} placeholder="مثال: ۱۰۰" error={errors[`maxDispAt1_5x_${index}`]}/>
+                                     <InputGroup label="تغییرمکان باقی‌مانده" unit="mm" name="residualDispAfterLoad" value={test.residualDispAfterLoad} onChange={(e) => handleMechanicalTestChange(test.id, e)} onBlur={(e) => handleBlur(e, index)} placeholder="مثال: ۸" error={errors[`residualDispAfterLoad_${index}`]}/>
+                                </div>
+                            </div>
+                        ))}
+                        <button className="action-button" onClick={addMechanicalTest} disabled={mechanicalTests.length >= 6}>افزودن برگه آزمون پایه</button>
+                    </Card>
+
+                    <Card title="سایر پارامترهای امتیازآور">
+                        <InputGroup label="مدت گارانتی" unit="سال" name="warrantyYears" value={inputs.warrantyYears} onChange={handleChange} onBlur={handleBlur} placeholder="حداقل ۲ سال" error={errors.warrantyYears}/>
+                        <InputGroup label="سابقه تولید" unit="سال" name="historyYears" value={inputs.historyYears} onChange={handleChange} onBlur={handleBlur} />
+                        <InputGroup label="ظرفیت تولید سالانه" unit="اصله" name="annualCapacity" value={inputs.annualCapacity} onChange={handleChange} onBlur={handleBlur} />
+                        <InputGroup label="طول عمر پایه" unit="سال" name="lifespanYears" value={inputs.lifespanYears} onChange={handleChange} onBlur={handleBlur} placeholder="حداقل ۴۰ سال" error={errors.lifespanYears}/>
+                    </Card>
+                    
+                    <Card title="۱۰. کیفیت خط تولید و دپو">
+                         <div className="card-content checkbox-container">
+                             {/* FIX: Add missing onBlur prop to resolve TypeScript error. */}
+                             <InputGroup label="" name="line" value={inputs.prodLineQuality.line} onChange={handleChange} type="checkbox" onBlur={handleBlur}>فضای مسقف برای خط تولید</InputGroup>
+                             {/* FIX: Add missing onBlur prop to resolve TypeScript error. */}
+                             <InputGroup label="" name="materials" value={inputs.prodLineQuality.materials} onChange={handleChange} type="checkbox" onBlur={handleBlur}>فضای مسقف برای مصالح سنگی</InputGroup>
+                             {/* FIX: Add missing onBlur prop to resolve TypeScript error. */}
+                             <InputGroup label="" name="processing" value={inputs.prodLineQuality.processing} onChange={handleChange} type="checkbox" onBlur={handleBlur}>فضای مسقف برای دپوی فرآوری</InputGroup>
+                         </div>
+                    </Card>
+                    
+                    <Card title="پارامترهای تولید و حمل">
+                        <InputGroup label="۱۱. روش تولید" name="prodMethod" value={inputs.prodMethod} onChange={handleChange} type="select" onBlur={handleBlur}>
+                            <option value="40">قالب باز و آرماتوربندی اتوماتیک</option>
+                            <option value="30">قالب باز و آرماتوربندی دستی</option>
+                            <option value="20">قالب بسته و آرماتوربندی اتوماتیک</option>
+                            <option value="0">قالب بسته و آرماتوربندی دستی</option>
+                        </InputGroup>
+                        <InputGroup label="۱۲. نوع میکسر" name="mixerType" value={inputs.mixerType} onChange={handleChange} type="select" onBlur={handleBlur}>
+                            <option value="40">دو محوره افقی (Twin-shaft)</option>
+                            <option value="30">تک محوره افقی</option>
+                            <option value="20">تیغه‌ای با محور قائم (Pan)</option>
+                        </InputGroup>
+                        <InputGroup label="۱۳. نفوذپذیری و دوام بتن" name="permeability" value={inputs.permeability} onChange={handleChange} type="select" onBlur={handleBlur}>
+                            <option value="40">ارائه نتایج کامل (طبق بند)</option>
+                            <option value="20">ارائه نتایج ناقص (طبق بند)</option>
+                            <option value="0">عدم ارائه نتایج</option>
+                        </InputGroup>
+                        <InputGroup label="۱۴. مسافت حمل" name="transportDistance" value={inputs.transportDistance} onChange={handleChange} type="select" onBlur={handleBlur}>
+                            <option value="40">تا ۲۵۰ کیلومتر</option>
+                            <option value="30">۲۵۰ تا ۵۰۰ کیلومتر</option>
+                            <option value="20">۵۰۰ تا ۷۵۰ کیلومتر</option>
+                            <option value="10">۷۵۰ تا ۱۰۰۰ کیلومتر</option>
+                            <option value="0">بیشتر از ۱۰۰۰ کیلومتر</option>
+                        </InputGroup>
+                    </Card>
+                    <div className="actions-container">
+                         <button className="reset-button" onClick={handleReset}>بازنشانی</button>
+                    </div>
                 </div>
                 <div className="results-container">
                     <div className="results-card">
+                        <h2 className="total-score-label">امتیاز نهایی</h2>
                         <Gauge value={calculations.totalScore} />
-                        <h2 className="total-score-label">امتیاز نهایی فنی</h2>
                         <ul className="score-breakdown">
-                           {scoreItems.map(item => (
-                               <li key={item.key}>
-                                   <span className="label">{item.label} <span className="weight">(وزن: {item.weight}٪)</span></span>
-                                   <span className="value">{(calculations[item.key] || 0).toFixed(2)}</span>
-                               </li>
-                           ))}
+                            {Object.entries(calculations.scores).map(([key, value]) => (
+                                <li key={key}>
+                                    <span className="label">
+                                        {scoreLabels[key]?.label || key}
+                                        <span className="weight">({scoreLabels[key]?.weight}٪)</span>
+                                    </span>
+                                    <span className="value">{(value as number).toFixed(2)}</span>
+                                </li>
+                            ))}
                         </ul>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 };
