@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>محاسبه امتیاز فنی توانیر</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #005f9e;
+            --secondary-color: #008cff;
+            --background-color: #f0f4f8;
+            --card-background: #ffffff;
+            --text-color: #212529;
+            --muted-text-color: #6c757d;
+            --border-color: #dee2e6;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --font-family: 'Vazirmatn', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        #root {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .app-container {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .header-input {
+            border: none;
+            border-bottom: 2px dotted var(--primary-color);
+            font-family: var(--font-family);
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: center;
+            background: transparent;
+            width: 200px;
+        }
+        .header-input:focus {
+            outline: none;
+            border-bottom-style: solid;
+        }
+
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .results-container {
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+        }
+
+        .card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .results-card {
+             background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+        
+        .card summary {
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            color: var(--primary-color);
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card summary::-webkit-details-marker {
+           display: none;
+        }
+        .card[open] > summary::after {
+            transform: rotate(180deg);
+        }
+        summary::after {
+            content: '▼';
+            font-size: 0.8em;
+            transition: transform 0.2s;
+        }
+
+
+        .card-content {
+            padding: 0 1.5rem 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .input-group label {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--muted-text-color);
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #fdfdff;
+            font-family: var(--font-family);
+            font-size: 1rem;
+            color: var(--text-color);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .input-group input.error {
+            border-color: var(--danger-color);
+        }
+        
+        .input-group .error-message {
+            color: var(--danger-color);
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+        
+        .input-group input::placeholder {
+            color: #adb5bd;
+            font-size: 0.9rem;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(0, 140, 255, 0.2);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .checkbox-group label {
+             margin-bottom: 0;
+             color: var(--text-color);
+             cursor: pointer;
+        }
+        .checkbox-group input {
+            width: auto;
+            accent-color: var(--primary-color);
+        }
+        .card-content.checkbox-container {
+             grid-template-columns: 1fr;
+             gap: 0.75rem;
+        }
+
+        .pole-test-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .pole-test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .pole-test-header h4 {
+            color: var(--primary-color);
+        }
+        .pole-test-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-button, .remove-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font-family);
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .action-button:hover {
+            background-color: var(--primary-color);
+        }
+        .action-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .remove-button {
+            background-color: var(--danger-color);
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+        .remove-button:hover {
+             background-color: #b02a37;
+        }
+        
+        .results-card {
+             padding: 1.5rem;
+             text-align: center;
+        }
+
+        .gauge-container {
+            width: 200px;
+            height: 100px;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .gauge-background, .gauge-arc {
+            fill: none;
+            stroke-width: 20;
+            stroke-linecap: round;
+        }
+
+        .gauge-background {
+            stroke: #e9ecef;
+        }
+        
+        .gauge-arc {
+             transition: stroke-dasharray 0.5s ease-in-out, stroke 0.5s;
+        }
+
+        .gauge-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            fill: var(--primary-color);
+            font-feature-settings: "tnum";
+        }
+        
+        .total-score-label {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+        
+        .score-breakdown {
+            list-style: none;
+            text-align: right;
+            max-height: calc(100vh - 400px);
+            overflow-y: auto;
+            padding-left: 1rem;
+        }
+        
+        .score-breakdown li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f4f8;
+        }
+        
+        .score-breakdown li:last-child {
+            border-bottom: none;
+        }
+
+        .score-breakdown .label {
+            color: #555;
+            font-size: 0.95rem;
+        }
+        .score-breakdown .label .weight {
+            font-size: 0.8rem;
+            color: var(--muted-text-color);
+            margin-right: 5px;
+        }
+        
+        .score-breakdown .value {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 1rem;
+            font-feature-settings: "tnum";
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .results-container {
+                position: static;
+                top: 0;
+            }
+             header h1, .header-input {
+                font-size: 1.5rem;
+             }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
