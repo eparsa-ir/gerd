@@ -143,8 +143,31 @@
         }
         
         #header-card .card-content {
-            grid-template-columns: repeat(3, 1fr);
+             display: flex;
+             flex-direction: column;
+             gap: 1.5rem;
         }
+        .header-inputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+        }
+        .pole-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
+        }
+        .pole-type-grid h4 {
+            grid-column: 1 / -1;
+            font-size: 1rem;
+            color: var(--muted-text-color);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
 
         .input-group {
             display: flex;
@@ -196,27 +219,44 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            padding: 0.25rem 0;
+            cursor: pointer;
         }
-        .checkbox-group label {
-             margin-bottom: 0;
+        .checkbox-group span {
              color: var(--text-color);
-             cursor: pointer;
+             font-size: 0.9rem;
+             user-select: none;
         }
         .checkbox-group input {
             width: auto;
             accent-color: var(--primary-color);
+            cursor: pointer;
         }
         .card-content.checkbox-container {
              grid-template-columns: 1fr;
              gap: 0.75rem;
         }
 
+        .pole-test-section {
+             border: 1px solid var(--border-color);
+             border-radius: 8px;
+             margin-top: 1rem;
+             padding: 1rem;
+             grid-column: 1 / -1; /* Span full width */
+        }
+        .pole-test-section > h3 {
+             color: var(--primary-color);
+             margin-bottom: 1rem;
+             padding-bottom: 1rem;
+             border-bottom: 1px solid #eee;
+        }
+
         .pole-test-card {
-            border: 1px solid var(--border-color);
+            border: 1px solid #e0e0e0;
+            background-color: #fafafa;
             border-radius: 8px;
             padding: 1rem;
             margin-top: 1rem;
-            grid-column: 1 / -1; /* Span full width */
         }
         .pole-test-header {
             display: flex;
@@ -225,7 +265,7 @@
             margin-bottom: 1rem;
         }
         .pole-test-header h4 {
-            color: var(--primary-color);
+            color: #444;
         }
         .pole-test-inputs {
             display: grid;
@@ -362,7 +402,7 @@
              header h1 {
                 font-size: 1.5rem;
              }
-             #header-card .card-content {
+             .header-inputs {
                 grid-template-columns: 1fr;
             }
         }
