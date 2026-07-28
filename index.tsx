@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // --- Type Definitions ---
@@ -125,6 +125,48 @@ const App = () => {
     const [mechanicalTests, setMechanicalTests] = useState<MechanicalTestsState>({});
     const [inputs, setInputs] = useState(initialInputs);
     const [errors, setErrors] = useState({});
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            setDeferredPrompt(e);
+            // Update UI notify the user they can install the PWA
+            setShowInstallPrompt(true);
+        };
+
+        window.addEventListener('beforeinstallprompt', handler);
+
+        // Also check if app is already installed
+        window.addEventListener('appinstalled', () => {
+            setDeferredPrompt(null);
+            setShowInstallPrompt(false);
+            console.log('PWA was installed');
+        });
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        // Show the install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        // We've used the prompt, and can't use it again, throw it away
+        setDeferredPrompt(null);
+        setShowInstallPrompt(false);
+    };
+
+    const handleDismissInstall = () => {
+        setShowInstallPrompt(false);
+    };
 
     // --- Handlers ---
     const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -392,6 +434,24 @@ const App = () => {
                     </div>
                 </div>
             </div>
+            
+            {showInstallPrompt && (
+                <div className="install-prompt-overlay">
+                    <div className="install-prompt-card">
+                        <div className="install-prompt-header">
+                            <img src="/icon-192.png" alt="App Icon" className="install-prompt-icon" />
+                            <div>
+                                <h3>نصب اپلیکیشن</h3>
+                                <p>برای دسترسی سریع‌تر و استفاده آفلاین، اپلیکیشن را نصب کنید.</p>
+                            </div>
+                        </div>
+                        <div className="install-prompt-actions">
+                            <button className="install-btn" onClick={handleInstallClick}>نصب</button>
+                            <button className="dismiss-btn" onClick={handleDismissInstall}>شاید بعدا</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
